@@ -210,7 +210,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 getUserNickname(),
                 SERVICE_ID,
                 mConnectionLifecycleCallback,
-                new AdvertisingOptions(Strategy.P2P_CLUSTER))
+                new AdvertisingOptions(Strategy.P2P_STAR))
                 .setResultCallback(
                         new ResultCallback<Connections.StartAdvertisingResult>() {
                             @Override
@@ -278,7 +278,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 mGoogleApiClient,
                 SERVICE_ID,
                 mEndpointDiscoveryCallback,
-                new DiscoveryOptions(Strategy.P2P_CLUSTER))
+                new DiscoveryOptions(Strategy.P2P_STAR))
                 .setResultCallback(
                         new ResultCallback<Status>() {
                             @Override
