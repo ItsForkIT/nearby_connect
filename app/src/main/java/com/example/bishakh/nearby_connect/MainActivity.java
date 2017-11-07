@@ -1,7 +1,10 @@
 package com.example.bishakh.nearby_connect;
 
 import android.Manifest;
+import android.app.Dialog;
+import android.app.PendingIntent;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -11,9 +14,13 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Status;
@@ -25,6 +32,7 @@ import com.google.android.gms.nearby.connection.ConnectionResolution;
 import com.google.android.gms.nearby.connection.Connections;
 import com.google.android.gms.nearby.connection.ConnectionsStatusCodes;
 import com.google.android.gms.nearby.connection.DiscoveredEndpointInfo;
+import com.google.android.gms.nearby.connection.DiscoveryOptions;
 import com.google.android.gms.nearby.connection.EndpointDiscoveryCallback;
 import com.google.android.gms.nearby.connection.Payload;
 import com.google.android.gms.nearby.connection.PayloadCallback;
@@ -51,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
 
     @Override
     public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Toast.makeText(getBaseContext(), "G API failed " + connectionResult.getErrorMessage(), Toast.LENGTH_SHORT).show();
+        Toast.makeText(getBaseContext(), "G API failed " + connectionResult.getErrorCode(), Toast.LENGTH_SHORT).show();
     }
 
 
@@ -96,6 +104,29 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 .addApi(Nearby.CONNECTIONS_API)
                 .build();
 
+
+        // Initialize buttons
+        Button discoverButton = (Button) findViewById(R.id.discover_button);
+        discoverButton.setOnClickListener( new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                startDiscovery();
+                Toast.makeText(getBaseContext(), "Start discovery..", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        Button advertiseButton = (Button) findViewById(R.id.advertrise_button);
+        advertiseButton.setOnClickListener( new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                startAdvertising();
+                Toast.makeText(getBaseContext(), "Start advertising..", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+
     }
 
 
@@ -114,6 +145,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         }
     }
 
+
     private  String getUserNickname(){
         return "HardcodedUsername";
     }
@@ -129,12 +161,14 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                     // Automatically accept the connection on both sides.
                     Nearby.Connections.acceptConnection(
                             mGoogleApiClient, endpointId, mPayloadCallback);
+                    Toast.makeText(getBaseContext(), "Connection accepted!: " + endpointId, Toast.LENGTH_SHORT).show();
                 }
 
                 @Override
                 public void onConnectionResult(String endpointId, ConnectionResolution result) {
                     switch (result.getStatus().getStatusCode()) {
                         case ConnectionsStatusCodes.STATUS_OK:
+                            Toast.makeText(getBaseContext(), "connected! : " + endpointId, Toast.LENGTH_SHORT).show();
                             // We're connected! Can now start sending and receiving data.
                             break;
                         case ConnectionsStatusCodes.STATUS_CONNECTION_REJECTED:
@@ -144,6 +178,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 }
                 @Override
                 public void onDisconnected(String endpointId) {
+                    Toast.makeText(getBaseContext(), "disconnected: " + endpointId, Toast.LENGTH_SHORT).show();
                     // We've been disconnected from this endpoint. No more data can be
                     // sent or received.
                 }
@@ -171,51 +206,11 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                                 }
                             }
                         });
+        ((TextView) findViewById(R.id.status_text)).setText("Advertising..");
     }
 
-    @Override
-    public void onEndpointFound(
-            String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
-        String name = getUserNickname();
-        Nearby.Connections.requestConnection(
-                mGoogleApiClient,
-                name,
-                endpointId,
-                mConnectionLifecycleCallback)
-                .setResultCallback(
-                        new ResultCallback<Status>() {
-                            @Override
-                            public void onResult(@NonNull Status status) {
-                                if (status.isSuccess()) {
-                                    // We successfully requested a connection. Now both sides
-                                    // must accept before the connection is established.
-                                } else {
-                                    // Nearby Connections failed to request the connection.
-                                }
-                            }
-                        });
-    }
 
-    @Override
-    public void onConnectionInitiated(final String endpointId, ConnectionInfo connectionInfo) {
-        new AlertDialog.Builder(this)
-                .setTitle("Accept connection to " + connectionInfo.getEndpointName())
-                .setMessage("Confirm if the code " + connectionInfo.getAuthenticationToken() + " is also displayed on the other device")
-                .setPositiveButton("Accept", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // The user confirmed, so we can accept the connection.
-                        Nearby.Connections.acceptConnection(mGoogleApiClient, endpointId, mPayloadCallback);
-                    }
-                })
-                .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // The user canceled, so we should reject the connection.
-                        Nearby.Connections.rejectConnection(mGoogleApiClient, mPayloadCallback);
-                    }
-                })
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
-    }
+
 
 
 
@@ -227,7 +222,26 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 @Override
                 public void onEndpointFound(
                         String endpointId, DiscoveredEndpointInfo discoveredEndpointInfo) {
-                    // An endpoint was found!
+                    // request connection
+                    Toast.makeText(getBaseContext(), "discovered.. requesting..: " + endpointId, Toast.LENGTH_SHORT).show();
+                    String name = getUserNickname();
+                    Nearby.Connections.requestConnection(
+                            mGoogleApiClient,
+                            name,
+                            endpointId,
+                            mConnectionLifecycleCallback)
+                            .setResultCallback(
+                                    new ResultCallback<Status>() {
+                                        @Override
+                                        public void onResult(@NonNull Status status) {
+                                            if (status.isSuccess()) {
+                                                // We successfully requested a connection. Now both sides
+                                                // must accept before the connection is established.
+                                            } else {
+                                                // Nearby Connections failed to request the connection.
+                                            }
+                                        }
+                                    });
                 }
 
                 @Override
@@ -236,12 +250,37 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 }
             };
 
+    private void startDiscovery() {
+        Nearby.Connections.startDiscovery(
+                mGoogleApiClient,
+                SERVICE_ID,
+                mEndpointDiscoveryCallback,
+                new DiscoveryOptions(Strategy.P2P_CLUSTER))
+                .setResultCallback(
+                        new ResultCallback<Status>() {
+                            @Override
+                            public void onResult(@NonNull Status status) {
+                                if (status.isSuccess()) {
+                                    Toast.makeText(getBaseContext(), "started discovery", Toast.LENGTH_SHORT).show();
+                                    ((TextView) findViewById(R.id.status_text)).setText("Discovering..");
+
+                                    // We're discovering!
+                                } else {
+                                    // We were unable to start discovering.
+                                    Toast.makeText(getBaseContext(), "unable to start discovery", Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                        });
+    }
+
+
     // Payload ==========================
     private final PayloadCallback mPayloadCallback =
             new PayloadCallback() {
                 @Override
                 public void onPayloadReceived(String endpointId, Payload payload) {
-                    onReceive(mEstablishedConnections.get(endpointId), payload);
+
+                    //onReceive(mEstablishedConnections.get(endpointId), payload);
                 }
 
                 @Override
