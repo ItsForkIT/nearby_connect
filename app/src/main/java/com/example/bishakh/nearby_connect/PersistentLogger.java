@@ -23,9 +23,10 @@ public class PersistentLogger {
     public void write(String msg){
         Log.d("nearby_connect", msg);
         Date now = new Date();
-        String log_msg = now.toString() + ", " + msg;
+        String log_msg = now.toString() + ", " + msg + "\n";
         try {
             fw.write(log_msg);
+            fw.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
